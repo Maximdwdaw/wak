@@ -11,59 +11,57 @@
 </head>
 
 <body>
-    
+
     <style>
-    body {
-      background-color: black;
-    }
-    
-    #video {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 50%;
-        height: 100%;
-        z-index: -2;
-    }
-    
-    #video2 {
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: 50%;
-        height: 100%;
-    }
-    #time {
-      position: fixed;
-        bottom: 10%;
-        left: 70%;
-        width: 100px;
-        height: 40px;
-        color: black;
-        text-align: center;
-        z-index: 2;
-        background-color: rgb(192, 192, 192);
-        border-radius: 20px;
-        
-    }
-    
-    
-    video::-webkit-media-controls {
-        display: none;
-    }
-    
-    
-    #cide {
-        position: absolute;
-        right: 1%;
-        top: 30%;
-        width: 260px;
-        height: 170px;
-        display:none;
-    }
-    
+        body {
+            background-color: black;
+        }
+
+        #video {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        #video2 {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+        }
+
+        #time {
+            position: fixed;
+            bottom: 10%;
+            left: 70%;
+            width: 100px;
+            height: 40px;
+            color: black;
+            text-align: center;
+            z-index: 2;
+            background-color: rgb(192, 192, 192);
+            border-radius: 20px;
+
+        }
+
+        video::-webkit-media-controls {
+            display: none;
+        }
+
+        #cide {
+            position: absolute;
+            right: 1%;
+            top: 30%;
+            width: 260px;
+            height: 170px;
+            display: none;
+        }
+
     </style>
-    
 
     <h1 id="time"></h1>
 
@@ -78,16 +76,31 @@
             const timeElement = document.getElementById('time');
 
             videoElements.forEach((video, index) => {
-                handTrack.startVideo(video).then(status => {
-                    if (status) {
-                        handTrack.load().then(model => {
-                            detectHandState(model, video, timeElement);
-                        });
-                    } else {
-                        console.error(`Unable to start video stream ${index + 1}.`);
+                const videoConstraints = {
+                    video: {
+                        facingMode: 'environment', // 'user' for front camera, 'environment' for back camera
                     }
-                });
+                };
+
+                navigator.mediaDevices.getUserMedia(videoConstraints)
+                    .then((stream) => {
+                        video.srcObject = stream;
+
+                        handTrack.startVideo(video).then(status => {
+                            if (status) {
+                                handTrack.load().then(model => {
+                                    detectHandState(model, video, timeElement);
+                                });
+                            } else {
+                                console.error(`Unable to start video stream ${index + 1}.`);
+                            }
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Error accessing user media:', error);
+                    });
             });
+
             setInterval(() => {
                 var time = new Date();
                 let h = time.getHours();
@@ -98,7 +111,7 @@
             setTimeout(() => {
                 document.getElementById("video").style.height = '100%';
                 document.getElementById("video2").style.height = '100%';
-            }, 100)
+            }, 100);
         }
 
         function detectHandState(model, video, timeElement) {
