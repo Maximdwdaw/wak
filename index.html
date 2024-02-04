@@ -78,7 +78,7 @@
             videoElements.forEach((video, index) => {
                 const videoConstraints = {
                     video: {
-                        facingMode: 'environment', // 'user' for front camera, 'environment' for back camera
+                        facingMode: 'user', // 'user' for front camera, 'environment' for back camera
                     }
                 };
 
@@ -89,7 +89,9 @@
                         handTrack.startVideo(video).then(status => {
                             if (status) {
                                 handTrack.load().then(model => {
-                                    detectHandState(model, video, timeElement);
+                                    detectHandState(model, video, timeElement);    
+                                                document.getElementById("video").style.height = '100%';
+                document.getElementById("video2").style.height = '100%';
                                 });
                             } else {
                                 console.error(`Unable to start video stream ${index + 1}.`);
@@ -108,10 +110,7 @@
 
                 timeElement.textContent = `${h}:${m}`;
             }, 1000);
-            setTimeout(() => {
-                document.getElementById("video").style.height = '100%';
-                document.getElementById("video2").style.height = '100%';
-            }, 100);
+  
         }
 
         function detectHandState(model, video, timeElement) {
