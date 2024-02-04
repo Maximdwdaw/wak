@@ -57,12 +57,6 @@ video::-webkit-media-controls {
     display:none;
 }
 
-#cameraSelect {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-}
-
 </style>
 
 <h1 id="time"></h1>
@@ -72,25 +66,9 @@ video::-webkit-media-controls {
 
 <iframe id="cide" src="https://youtu.be/pZgQ1PzKuXA?si=Kx-PzKeacwWJPnC8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-<select id="cameraSelect"></select>
-
 <script>
 var video = document.querySelector("#video");
 var video2 = document.querySelector("#video2");
-var cameraSelect = document.querySelector("#cameraSelect");
-
-function startStream(deviceId) {
-  var constraints = { video: { deviceId: { exact: deviceId } } };
-  
-  navigator.mediaDevices.getUserMedia(constraints)
-    .then(function(stream) {
-      video.srcObject = stream;
-      video2.srcObject = stream;
-    })
-    .catch(function(error) {
-      console.log("Error accessing camera:", error);
-    });
-}
 
 navigator.mediaDevices.enumerateDevices()
   .then(function(devices) {
@@ -99,20 +77,32 @@ navigator.mediaDevices.enumerateDevices()
     });
 
     if (cameras.length > 0) {
+      // Вам нужно предоставить пользователю выбор камеры
+      // Например, создать выпадающий список (select) и позволить пользователю выбрать камеру
+
+      var select = document.createElement('select');
       cameras.forEach(function(camera, index) {
         var option = document.createElement('option');
-        option.value = camera.deviceId;
+        option.value = index;
         option.text = camera.label || 'Camera ' + (index + 1);
-        cameraSelect.add(option);
+        select.add(option);
       });
 
-      cameraSelect.addEventListener('change', function() {
-        var selectedCameraId = cameraSelect.value;
-        startStream(selectedCameraId);
+      select.addEventListener('change', function() {
+        var selectedCameraIndex = select.value;
+        var constraints = { video: { deviceId: { exact: cameras[selectedCameraIndex].deviceId } } };
+
+        navigator.mediaDevices.getUserMedia(constraints)
+          .then(function(stream) {
+            video.srcObject = stream;
+            video2.srcObject = stream;
+          })
+          .catch(function(error) {
+            console.log("Error accessing camera:", error);
+          });
       });
-      
-      // Запуск потока с первой камеры
-      startStream(cameras[0].deviceId);
+
+      document.body.appendChild(select);
     } else {
       console.log("No cameras found.");
     }
