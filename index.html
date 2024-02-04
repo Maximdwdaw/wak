@@ -7,7 +7,6 @@
     <title>Hand State Detection</title>
     <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22daw%22%2C%20%22short_name%22%3A%20%22daw%22%2C%20%22start_url%22%3A%20%22index.html%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23ffffff%22%2C%20%22theme_color%22%3A%20%22%23000000%22%2C%20%22scope%22%3A%20%22/%22%2C%20%22offline_enabled%22%3A%20true%2C%20%22prefer_related_applications%22%3A%20false%2C%20%22lang%22%3A%20%22ua%22%2C%20%22related_applications%22%3A%20%5B%5D%7D" />
     <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
-
 </head>
 
 <body>
@@ -45,7 +44,6 @@
             z-index: 2;
             background-color: rgb(192, 192, 192);
             border-radius: 20px;
-
         }
 
         video::-webkit-media-controls {
@@ -61,47 +59,46 @@
             display: none;
         }
 
+        #switchCamera {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 
     <h1 id="time"></h1>
-
+    <button id="switchCamera">Switch Camera</button>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
+
     <script>
         document.addEventListener('DOMContentLoaded', startHandTracking);
+
+        let currentCameraIndex = 0; // Index of the currently used camera
+        let cameras = []; // Array to store available cameras
 
         function startHandTracking() {
             const videoElements = document.querySelectorAll('.video');
             const timeElement = document.getElementById('time');
+            const switchCameraButton = document.getElementById('switchCamera');
 
+            // Enumerate devices to get the list of cameras
             navigator.mediaDevices.enumerateDevices()
                 .then(devices => {
-                    const cameras = devices.filter(device => device.kind === 'videoinput');
+                    cameras = devices.filter(device => device.kind === 'videoinput');
 
                     if (cameras.length > 0) {
-                        const videoConstraints = {
-                            deviceId: cameras[cameras.length - 1].deviceId, // Use the last camera (environment-facing)
-                        };
+                        switchCameraButton.addEventListener('click', switchCamera);
 
                         videoElements.forEach((video, index) => {
-                            navigator.mediaDevices.getUserMedia({ video: videoConstraints })
-                                .then((stream) => {
-                                    video.srcObject = stream;
-
-                                    handTrack.startVideo(video).then(status => {
-                                        if (status) {
-                                            handTrack.load().then(model => {
-                                                detectHandState(model, video, timeElement);
-                                            });
-                                        } else {
-                                            console.error(`Unable to start video stream ${index + 1}.`);
-                                        }
-                                    });
-                                })
-                                .catch((error) => {
-                                    console.error('Error accessing user media:', error);
-                                });
+                            startCamera(video, index);
                         });
 
                         setInterval(() => {
@@ -124,23 +121,28 @@
                 });
         }
 
-        function detectHandState(model, video, timeElement) {
-            model.detect(video).then(predictions => {
-                if (predictions.length > 0) {
-                    const handState = predictions[0].label;
-                    console.log(`Hand state: ${handState}`);
-                    if (handState === 'closed') {
-                        // Show time
-                        timeElement.style.display = 'block';
-                    } else {
-                        // Hide time
-                        timeElement.style.display = 'none';
-                    }
-                }
+        function startCamera(video, index) {
+            const videoConstraints = {
+                deviceId: cameras[currentCameraIndex].deviceId, // Use the currently selected camera
+            };
 
-                requestAnimationFrame(() => detectHandState(model, video, timeElement));
+            navigator.mediaDevices.getUserMedia({ video: videoConstraints })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(error => {
+                    console.error(`Unable to start video stream ${index + 1}.`, error);
+                });
+        }
+
+        function switchCamera() {
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+
+            videoElements.forEach((video, index) => {
+                startCamera(video, index);
             });
         }
+
     </script>
 </body>
 
