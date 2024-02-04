@@ -14,24 +14,23 @@ body {
   background-color: black;
 }
 
+#video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
 #video {
     position: absolute;
     left: 0;
     top: 0;
-    width: 50%;
+    width: 100%;
     height: 100%;
     z-index: -2;
 }
 
-#video2 {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 50%;
-    height: 100%;
-}
 #time {
-  position: fixed;
+    position: fixed;
     bottom: 10%;
     left: 70%;
     width: 100px;
@@ -41,14 +40,11 @@ body {
     z-index: 2;
     background-color: rgb(192, 192, 192);
     border-radius: 20px;
-    
 }
-
 
 video::-webkit-media-controls {
     display: none;
 }
-
 
 #cide {
     position: absolute;
@@ -58,48 +54,50 @@ video::-webkit-media-controls {
     height: 170px;
     display:none;
 }
-
 </style>
-
 
 <h1 id="time"></h1>
 
-
-
-<video autoplay muted playsinline id="video"></video>
-<video autoplay muted playsinline id="video2"></video>
+<div id="video-container">
+    <video autoplay muted playsinline id="video"></video>
+</div>
 
 <iframe id="cide" src="https://youtu.be/pZgQ1PzKuXA?si=Kx-PzKeacwWJPnC8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 <script>
 var video = document.querySelector("#video");
-var video2 = document.querySelector("#video2");
+var videoContainer = document.querySelector("#video-container");
+var zoomLevel = 1;
 
 if (navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment"} })
     .then(function (stream) {
         video.srcObject = stream;
-        video2.srcObject = stream;
+        video.addEventListener('loadedmetadata', function () {
+            videoContainer.addEventListener('wheel', handleZoom);
+        });
     })
     .catch(function (error) {
         console.log("Something went wrong!");
     });
 }
+
 var time = new Date();
 document.getElementById("time").textContent = `${time.getHours()}:${time.getMinutes()}`
-setInterval(()=>{
-  var time = new Date();
-let h = time.getHours();
-let m = time.getMinutes();
+setInterval(() => {
+    var time = new Date();
+    let h = time.getHours();
+    let m = time.getMinutes();
+    document.getElementById("time").textContent = `${h}:${m}`
+}, 1)
 
-    
-document.getElementById("time").textContent = `${h}:${m}`
-},1)
-
-
-
-
-
-
+function handleZoom(event) {
+    event.preventDefault();
+    zoomLevel += event.deltaY * -0.01;
+    zoomLevel = Math.min(Math.max(0.5, zoomLevel), 2); // Limit zoom level between 0.5x and 2x
+    video.style.transform = `scale(${zoomLevel})`;
+}
 </script>
+
 </body>
 </html>
