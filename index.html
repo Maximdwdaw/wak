@@ -75,42 +75,53 @@
             const videoElements = document.querySelectorAll('.video');
             const timeElement = document.getElementById('time');
 
-            videoElements.forEach((video, index) => {
-                const videoConstraints = {
-                    video: {
-                        facingMode: 'environment', // 'user' for front camera, 'environment' for back camera
-                    }
-                };
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    const cameras = devices.filter(device => device.kind === 'videoinput');
 
-                navigator.mediaDevices.getUserMedia(videoConstraints)
-                    .then((stream) => {
-                        video.srcObject = stream;
+                    if (cameras.length > 0) {
+                        const videoConstraints = {
+                            deviceId: cameras[cameras.length - 1].deviceId, // Use the last camera (environment-facing)
+                        };
 
-                        handTrack.startVideo(video).then(status => {
-                            if (status) {
-                                handTrack.load().then(model => {
-                                    detectHandState(model, video, timeElement);    
-                                                document.getElementById("video").style.height = '100%';
-                document.getElementById("video2").style.height = '100%';
+                        videoElements.forEach((video, index) => {
+                            navigator.mediaDevices.getUserMedia({ video: videoConstraints })
+                                .then((stream) => {
+                                    video.srcObject = stream;
+
+                                    handTrack.startVideo(video).then(status => {
+                                        if (status) {
+                                            handTrack.load().then(model => {
+                                                detectHandState(model, video, timeElement);
+                                            });
+                                        } else {
+                                            console.error(`Unable to start video stream ${index + 1}.`);
+                                        }
+                                    });
+                                })
+                                .catch((error) => {
+                                    console.error('Error accessing user media:', error);
                                 });
-                            } else {
-                                console.error(`Unable to start video stream ${index + 1}.`);
-                            }
                         });
-                    })
-                    .catch((error) => {
-                        console.error('Error accessing user media:', error);
-                    });
-            });
 
-            setInterval(() => {
-                var time = new Date();
-                let h = time.getHours();
-                let m = time.getMinutes();
+                        setInterval(() => {
+                            var time = new Date();
+                            let h = time.getHours();
+                            let m = time.getMinutes();
 
-                timeElement.textContent = `${h}:${m}`;
-            }, 1000);
-  
+                            timeElement.textContent = `${h}:${m}`;
+                        }, 1000);
+                        setTimeout(() => {
+                            document.getElementById("video").style.height = '100%';
+                            document.getElementById("video2").style.height = '100%';
+                        }, 100);
+                    } else {
+                        console.error('No video devices found.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error enumerating devices:', error);
+                });
         }
 
         function detectHandState(model, video, timeElement) {
