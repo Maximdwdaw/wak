@@ -142,8 +142,8 @@
             model.detect(video).then(predictions => {
                 if (predictions.length > 0) {
                     const handState = predictions[0].label;
-                    console.log(`Hand state: ${handState}`);
-                    if (handState === 'closed') {
+                                        
+                    if (handState === 'point') {
                         // Show time
                         timeElement.style.display = 'block';
                     } else {
