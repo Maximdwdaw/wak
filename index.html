@@ -10,7 +10,6 @@
 </head>
 
 <body>
-
     <style>
         body {
             background-color: black;
@@ -46,101 +45,98 @@
             border-radius: 20px;
         }
 
-        #cameraSelect {
+        video::-webkit-media-controls {
+            display: none;
+        }
+
+        #cide {
+            position: absolute;
+            right: 1%;
+            top: 30%;
+            width: 260px;
+            height: 170px;
+            display: none;
+        }
+
+        #switchCameraSelect {
             position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1;
-            display: block;
+            bottom: 10%;
+            left: 10%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 
     <h1 id="time"></h1>
-    <select id="cameraSelect" onchange="onCameraSelectChange(this)"></select>
+    <select id="switchCameraSelect"></select>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
 
     <script>
+        document.addEventListener('DOMContentLoaded', startHandTracking);
 
-        let currentCameraIndex = 0; // Index of the currently used camera
-        let cameras = []; // Array to store available cameras
-        let videoElements = []; // Array to store video elements
-        let cameraSelect = document.getElementById('cameraSelect');
-        let handTrackModel;
+        let currentCameraIndex = 1; // Set the desired camera index here
+
+        const switchCameraSelect = document.getElementById('switchCameraSelect');
+
+        switchCameraSelect.addEventListener('change', switchCamera);
 
         function startHandTracking() {
+            const videoElements = document.querySelectorAll('.video');
             const timeElement = document.getElementById('time');
 
-            // Enumerate devices to get the list of cameras
-            navigator.mediaDevices.enumerateDevices()
-                .then(devices => {
-                    cameras = devices.filter(device => device.kind === 'videoinput');
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                devices.forEach((device, index) => {
+                    if (device.kind === 'videoinput') {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.text = `Camera ${index + 1}`;
+                        switchCameraSelect.appendChild(option);
+                    }
+                });
 
-                    
+                videoElements.forEach((video, index) => {
+                    if (devices[currentCameraIndex] && devices[currentCameraIndex].kind === 'videoinput') {
+                        const constraints = {
+                            video: {
+                                deviceId: devices[currentCameraIndex].deviceId,
+                            },
+                        };
+                        navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+                            video.srcObject = stream;
+                        }).catch(error => {
+                            console.error('Error switching camera:', error);
+                        });
+                    }
 
-                        handTrack.load().then(model => {
-                            handTrackModel = model;
-
-                            videoElements.forEach((video, index) => {
-                                startCamera(video, index);
+                    handTrack.startVideo(video).then(status => {
+                        if (status) {
+                            handTrack.load().then(model => {
                                 detectHandState(model, video, timeElement);
                             });
-
-                            setInterval(() => {
-                                var time = new Date();
-                                let h = time.getHours();
-                                let m = time.getMinutes();
-
-                                timeElement.textContent = `${h}:${m}`;
-                            }, 1000);
-
-                            setTimeout(() => {
-                                document.getElementById("video").style.height = '100%';
-                                document.getElementById("video2").style.height = '100%';
-                            }, 100);
-                        });
-                    } else {
-                        console.error('No video devices found.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error enumerating devices:', error);
+                        } else {
+                            console.error(`Unable to start video stream ${index + 1}.`);
+                        }
+                    });
                 });
-        }
 
-        function onCameraSelectChange(select) {
-            if (cameras.length > 0) {
-                        videoElements = document.querySelectorAll('.video');
+                setInterval(() => {
+                    var time = new Date();
+                    let h = time.getHours();
+                    let m = time.getMinutes();
 
-                        cameras.forEach((camera, index) => {
-                            const option = document.createElement('option');
-                            option.value = index;
-                            option.textContent = `Camera ${index + 1}`;
-                            cameraSelect.appendChild(option);
-                        });
-            currentCameraIndex = parseInt(select.value);
-
-            videoElements.forEach((video, index) => {
-                startCamera(video, index);
+                    timeElement.textContent = `${h}:${m}`;
+                }, 1000);
+                setTimeout(() => {
+                    document.getElementById("video").style.height = '100%';
+                    document.getElementById("video2").style.height = '100%';
+                }, 100);
             });
-            startHandTracking();
-            // Hide the select element after making a selection
-            select.style.display = 'none';
-        }
-
-        function startCamera(video, index) {
-            const videoConstraints = {
-                deviceId: cameras[currentCameraIndex].deviceId, // Use the currently selected camera
-            };
-
-            navigator.mediaDevices.getUserMedia({ video: videoConstraints })
-                .then(stream => {
-                    video.srcObject = stream;
-                })
-                .catch(error => {
-                    console.error(`Unable to start video stream ${index + 1}.`, error);
-                });
         }
 
         function detectHandState(model, video, timeElement) {
@@ -158,6 +154,27 @@
                 }
 
                 requestAnimationFrame(() => detectHandState(model, video, timeElement));
+            });
+        }
+
+        function switchCamera() {
+            currentCameraIndex = switchCameraSelect.value;
+            const videoElements = document.querySelectorAll('.video');
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                videoElements.forEach((video, index) => {
+                    if (devices[currentCameraIndex] && devices[currentCameraIndex].kind === 'videoinput') {
+                        const constraints = {
+                            video: {
+                                deviceId: devices[currentCameraIndex].deviceId,
+                            },
+                        };
+                        navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+                            video.srcObject = stream;
+                        }).catch(error => {
+                            console.error('Error switching camera:', error);
+                        });
+                    }
+                });
             });
         }
     </script>
