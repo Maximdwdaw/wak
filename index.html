@@ -146,7 +146,7 @@
 
                     if (handState === 'open') {
                         const handPositionX = predictions[0].bbox[0] + predictions[0].bbox[2] + 240;
-                        const handPositionY = predictions[0].bbox[1] + predictions[0].bbox[3] - 60;
+                        const handPositionY = predictions[0].bbox[1] + predictions[0].bbox[3] - 20;
 
                         // Update the position of timeElement based on hand position
                         timeElement.style.display = 'block';
