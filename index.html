@@ -7,127 +7,139 @@
     <title>Hand State Detection</title>
     <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22daw%22%2C%20%22short_name%22%3A%20%22daw%22%2C%20%22start_url%22%3A%20%22index.html%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23ffffff%22%2C%20%22theme_color%22%3A%20%22%23000000%22%2C%20%22scope%22%3A%20%22/%22%2C%20%22offline_enabled%22%3A%20true%2C%20%22prefer_related_applications%22%3A%20false%2C%20%22lang%22%3A%20%22ua%22%2C%20%22related_applications%22%3A%20%5B%5D%7D" />
     <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
-
 </head>
 
 <body>
-    
+
     <style>
-    body {
-      background-color: black;
-    }
-    
-    #video {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 50%;
-        height: 100%;
-        z-index: -2;
-    }
-    
-    #video2 {
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: 50%;
-        height: 100%;
-    }
-    #time {
-      position: fixed;
-        bottom: 10%;
-        left: 70%;
-        width: 100px;
-        height: 40px;
-        color: black;
-        text-align: center;
-        z-index: 2;
-        background-color: rgb(192, 192, 192);
-        border-radius: 20px;
-        
-    }
-    
-    select {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        z-index: 2;
-    }
-    
-    video::-webkit-media-controls {
-        display: none;
-    }
-    
-    #cide {
-        position: absolute;
-        right: 1%;
-        top: 30%;
-        width: 260px;
-        height: 170px;
-        display:none;
-    }
-    
+        body {
+            background-color: black;
+        }
+
+        #video {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        #video2 {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+        }
+
+        #time {
+            position: fixed;
+            bottom: 10%;
+            left: 70%;
+            width: 100px;
+            height: 40px;
+            color: black;
+            text-align: center;
+            z-index: 2;
+            background-color: rgb(192, 192, 192);
+            border-radius: 20px;
+        }
+
+        #cameraSelect {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            display: block;
+        }
     </style>
-    
-    <select id="cameraSelect" onchange="changeCamera()">
-        <option value="camera1">Camera 1</option>
-        <option value="camera2">Camera 2</option>
-    </select>
 
     <h1 id="time"></h1>
+    <select id="cameraSelect" onchange="onCameraSelectChange(this)"></select>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
-    
+
     <script>
-        let selectedCamera = null;
-        const videoElements = document.querySelectorAll('.video');
-        const timeElement = document.getElementById('time');
-        let currentStream;
+        document.addEventListener('DOMContentLoaded', startHandTracking);
 
-        function changeCamera() {
-            const selectElement = document.getElementById('cameraSelect');
-            selectedCamera = selectElement.value;
+        let currentCameraIndex = 0; // Index of the currently used camera
+        let cameras = []; // Array to store available cameras
+        let videoElements = []; // Array to store video elements
+        let cameraSelect = document.getElementById('cameraSelect');
+        let handTrackModel;
 
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
+        function startHandTracking() {
+            const timeElement = document.getElementById('time');
 
+            // Enumerate devices to get the list of cameras
             navigator.mediaDevices.enumerateDevices()
                 .then(devices => {
-                    const videoInputs = devices.filter(device => device.kind === 'videoinput');
-                    const selectedDevice = videoInputs.find(device => device.label === selectedCamera);
+                    cameras = devices.filter(device => device.kind === 'videoinput');
 
-                    if (selectedDevice) {
-                        const constraints = {
-                            video: { deviceId: selectedDevice.deviceId },
-                        };
+                    if (cameras.length > 0) {
+                        videoElements = document.querySelectorAll('.video');
 
-                        navigator.mediaDevices.getUserMedia(constraints)
-                            .then(stream => {
-                                currentStream = stream;
-                                videoElements.forEach((video, index) => {
-                                    video.srcObject = stream;
-                                    handTrack.startVideo(video).then(status => {
-                                        if (status) {
-                                            handTrack.load().then(model => {
-                                                detectHandState(model, video, timeElement);
-                                            });
-                                        } else {
-                                            console.error(`Unable to start video stream for ${selectedCamera}.`);
-                                        }
-                                    });
-                                });
-                            })
-                            .catch(error => {
-                                console.error(`Error accessing camera: ${error}`);
+                        cameras.forEach((camera, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = `Camera ${index + 1}`;
+                            cameraSelect.appendChild(option);
+                        });
+
+                        handTrack.load().then(model => {
+                            handTrackModel = model;
+
+                            videoElements.forEach((video, index) => {
+                                startCamera(video, index);
+                                detectHandState(model, video, timeElement);
                             });
+
+                            setInterval(() => {
+                                var time = new Date();
+                                let h = time.getHours();
+                                let m = time.getMinutes();
+
+                                timeElement.textContent = `${h}:${m}`;
+                            }, 1000);
+
+                            setTimeout(() => {
+                                document.getElementById("video").style.height = '100%';
+                                document.getElementById("video2").style.height = '100%';
+                            }, 100);
+                        });
                     } else {
-                        console.error(`Selected camera ${selectedCamera} not found.`);
+                        console.error('No video devices found.');
                     }
                 })
                 .catch(error => {
-                    console.error(`Error enumerating devices: ${error}`);
+                    console.error('Error enumerating devices:', error);
+                });
+        }
+
+        function onCameraSelectChange(select) {
+            currentCameraIndex = parseInt(select.value);
+
+            videoElements.forEach((video, index) => {
+                startCamera(video, index);
+            });
+
+            // Hide the select element after making a selection
+            select.style.display = 'none';
+        }
+
+        function startCamera(video, index) {
+            const videoConstraints = {
+                deviceId: cameras[currentCameraIndex].deviceId, // Use the currently selected camera
+            };
+
+            navigator.mediaDevices.getUserMedia({ video: videoConstraints })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(error => {
+                    console.error(`Unable to start video stream ${index + 1}.`, error);
                 });
         }
 
