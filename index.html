@@ -77,15 +77,7 @@
                 .then(devices => {
                     cameras = devices.filter(device => device.kind === 'videoinput');
 
-                    if (cameras.length > 0) {
-                        videoElements = document.querySelectorAll('.video');
-
-                        cameras.forEach((camera, index) => {
-                            const option = document.createElement('option');
-                            option.value = index;
-                            option.textContent = `Camera ${index + 1}`;
-                            cameraSelect.appendChild(option);
-                        });
+                    
 
                         handTrack.load().then(model => {
                             handTrackModel = model;
@@ -118,6 +110,15 @@
         }
 
         function onCameraSelectChange(select) {
+            if (cameras.length > 0) {
+                        videoElements = document.querySelectorAll('.video');
+
+                        cameras.forEach((camera, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = `Camera ${index + 1}`;
+                            cameraSelect.appendChild(option);
+                        });
             currentCameraIndex = parseInt(select.value);
 
             videoElements.forEach((video, index) => {
