@@ -144,7 +144,7 @@
                 if (predictions.length > 0) {
                     const handState = predictions[0].label;
 
-                    if (handState === 'point') {
+                    if (handState === 'open') {
                         const handPositionX = predictions[0].bbox[0] + predictions[0].bbox[2] + 240;
                         const handPositionY = predictions[0].bbox[1] + predictions[0].bbox[3] - 60;
 
