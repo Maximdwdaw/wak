@@ -58,17 +58,7 @@
             display: none;
         }
 
-        #switchCameraSelect {
-            position: fixed;
-            bottom: 10%;
-            left: 10%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+
     </style>
 
     <h1 id="time"></h1>
@@ -155,6 +145,7 @@
                                 deviceId: devices[currentCameraIndex].deviceId,
                             },
                         };
+                        document.getElementById("switchCameraSelect").style.display= "none"
                         navigator.mediaDevices.getUserMedia(constraints).then(stream => {
                             video.srcObject = stream;
                         }).catch(error => {
