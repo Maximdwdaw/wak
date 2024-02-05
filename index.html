@@ -94,16 +94,41 @@
             });
 
             // Start new hand tracking with the selected camera
-            const selectedVideo = document.getElementById(selectedCamera);
-            handTrack.startVideo(selectedVideo).then(status => {
-                if (status) {
-                    handTrack.load().then(model => {
-                        detectHandState(model, selectedVideo, timeElement);
-                    });
-                } else {
-                    console.error(`Unable to start video stream for ${selectedCamera}.`);
-                }
-            });
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    const videoInputs = devices.filter(device => device.kind === 'videoinput');
+                    const selectedDevice = videoInputs.find(device => device.label === selectedCamera);
+
+                    if (selectedDevice) {
+                        const constraints = {
+                            video: { deviceId: selectedDevice.deviceId },
+                        };
+
+                        videoElements.forEach((video, index) => {
+                            navigator.mediaDevices.getUserMedia(constraints)
+                                .then(stream => {
+                                    video.srcObject = stream;
+                                    handTrack.startVideo(video).then(status => {
+                                        if (status) {
+                                            handTrack.load().then(model => {
+                                                detectHandState(model, video, timeElement);
+                                            });
+                                        } else {
+                                            console.error(`Unable to start video stream for ${selectedCamera}.`);
+                                        }
+                                    });
+                                })
+                                .catch(error => {
+                                    console.error(`Error accessing camera: ${error}`);
+                                });
+                        });
+                    } else {
+                        console.error(`Selected camera ${selectedCamera} not found.`);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error enumerating devices: ${error}`);
+                });
         }
 
         function detectHandState(model, video, timeElement) {
