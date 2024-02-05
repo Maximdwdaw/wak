@@ -17,19 +17,19 @@
 
         #video {
             position: absolute;
-            left: 0;
+            left: 3%;
             top: 0;
-            width: 50%;
-            height: 100%;
+            width: 45%;
+            height: 95%;
             z-index: -2;
         }
 
         #video2 {
             position: absolute;
-            right: 0;
+            right: 3%;
             top: 0;
-            width: 50%;
-            height: 100%;
+            width: 45%;
+            height: 95%;
         }
 
         #time {
@@ -60,11 +60,10 @@
 
         #switchCameraSelect {
             position: fixed;
-            bottom: 10%;
-            left: 10%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
+            top: 0px;
+            left: 0px;
+     
+            color: rgb(0, 0, 0);
             border: none;
             border-radius: 5px;
             cursor: pointer;
@@ -80,7 +79,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', startHandTracking);
 
-        let currentCameraIndex = 2; // Set the desired camera index here
+        let currentCameraIndex = 3; // Set the desired camera index here
 
         const switchCameraSelect = document.getElementById('switchCameraSelect');
 
