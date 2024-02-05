@@ -7,10 +7,10 @@
     <title>Hand State Detection</title>
     <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22daw%22%2C%20%22short_name%22%3A%20%22daw%22%2C%20%22start_url%22%3A%20%22index.html%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23ffffff%22%2C%20%22theme_color%22%3A%20%22%23000000%22%2C%20%22scope%22%3A%20%22/%22%2C%20%22offline_enabled%22%3A%20true%2C%20%22prefer_related_applications%22%3A%20false%2C%20%22lang%22%3A%20%22ua%22%2C%20%22related_applications%22%3A%20%5B%5D%7D" />
     <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
+
 </head>
 
 <body>
-
     <style>
         body {
             background-color: black;
@@ -50,16 +50,30 @@
             display: none;
         }
 
-        #cameraSelect {
+        #cide {
+            position: absolute;
+            right: 1%;
+            top: 30%;
+            width: 260px;
+            height: 170px;
+            display: none;
+        }
+
+        #switchCameraBtn {
             position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1;
+            bottom: 10%;
+            left: 10%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 
     <h1 id="time"></h1>
-    <select id="cameraSelect"></select>
+    <button id="switchCameraBtn">Switch Camera</button>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
@@ -67,78 +81,77 @@
     <script>
         document.addEventListener('DOMContentLoaded', startHandTracking);
 
-        let currentCameraIndex = 0; // Index of the currently used camera
-        let cameras = []; // Array to store available cameras
-        let videoElements = []; // Array to store video elements
+        let currentCameraIndex = 0;
+
+        document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
 
         function startHandTracking() {
+            const videoElements = document.querySelectorAll('.video');
             const timeElement = document.getElementById('time');
-            const cameraSelect = document.getElementById('cameraSelect');
 
-            // Enumerate devices to get the list of cameras
-            navigator.mediaDevices.enumerateDevices()
-                .then(devices => {
-                    cameras = devices.filter(device => device.kind === 'videoinput');
-
-                    if (cameras.length > 0) {
-                        videoElements = document.querySelectorAll('.video');
-
-                        cameras.forEach((camera, index) => {
-                            const option = document.createElement('option');
-                            option.value = index;
-                            option.textContent = `Camera ${index + 1}`;
-                            cameraSelect.appendChild(option);
-                        });
-
-                        cameraSelect.addEventListener('change', switchCamera);
-
-                        videoElements.forEach((video, index) => {
-                            startCamera(video, index);
-                        });
-
-                        setInterval(() => {
-                            var time = new Date();
-                            let h = time.getHours();
-                            let m = time.getMinutes();
-
-                            timeElement.textContent = `${h}:${m}`;
-                        }, 1000);
-                        setTimeout(() => {
-                            document.getElementById("video").style.height = '100%';
-                            document.getElementById("video2").style.height = '100%';
-                        }, 100);
-                    } else {
-                        console.error('No video devices found.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error enumerating devices:', error);
-                });
-        }
-
-        function startCamera(video, index) {
-            const videoConstraints = {
-                deviceId: cameras[currentCameraIndex].deviceId, // Use the currently selected camera
-            };
-
-            navigator.mediaDevices.getUserMedia({ video: videoConstraints })
-                .then(stream => {
-                    video.srcObject = stream;
-                    
-                })
-                .catch(error => {
-                    console.error(`Unable to start video stream ${index + 1}.`, error);
-                });
-        }
-
-        function switchCamera() {
-            currentCameraIndex = parseInt(cameraSelect.value);
-document.getElementById("cameraSelect").style.display ="none"
             videoElements.forEach((video, index) => {
-                startCamera(video, index);
+                handTrack.startVideo(video).then(status => {
+                    if (status) {
+                        handTrack.load().then(model => {
+                            detectHandState(model, video, timeElement);
+                        });
+                    } else {
+                        console.error(`Unable to start video stream ${index + 1}.`);
+                    }
+                });
+            });
+
+            setInterval(() => {
+                var time = new Date();
+                let h = time.getHours();
+                let m = time.getMinutes();
+
+                timeElement.textContent = `${h}:${m}`;
+            }, 1000);
+            setTimeout(() => {
+                document.getElementById("video").style.height = '100%';
+                document.getElementById("video2").style.height = '100%';
+            }, 100);
+        }
+
+        function detectHandState(model, video, timeElement) {
+            model.detect(video).then(predictions => {
+                if (predictions.length > 0) {
+                    const handState = predictions[0].label;
+                    console.log(`Hand state: ${handState}`);
+                    if (handState === 'closed') {
+                        // Show time
+                        timeElement.style.display = 'block';
+                    } else {
+                        // Hide time
+                        timeElement.style.display = 'none';
+                    }
+                }
+
+                requestAnimationFrame(() => detectHandState(model, video, timeElement));
             });
         }
 
+        function switchCamera() {
+            currentCameraIndex = 1 - currentCameraIndex; // Toggle between 0 and 1
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                const videoElements = document.querySelectorAll('.video');
+                videoElements.forEach((video, index) => {
+                    if (devices[currentCameraIndex] && devices[currentCameraIndex].kind === 'videoinput') {
+                        const constraints = {
+                            video: {
+                                deviceId: devices[currentCameraIndex].deviceId,
+                            },
+                        };
+                        navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+                            video.srcObject = stream;
+                        }).catch(error => {
+                            console.error('Error switching camera:', error);
+                        });
+                    }
+                });
+            });
+        }
     </script>
 </body>
 
