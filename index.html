@@ -124,6 +124,7 @@
             navigator.mediaDevices.getUserMedia({ video: videoConstraints })
                 .then(stream => {
                     video.srcObject = stream;
+                    
                 })
                 .catch(error => {
                     console.error(`Unable to start video stream ${index + 1}.`, error);
@@ -132,7 +133,7 @@
 
         function switchCamera() {
             currentCameraIndex = parseInt(cameraSelect.value);
-
+document.getElementById("cameraSelect").style.display ="none"
             videoElements.forEach((video, index) => {
                 startCamera(video, index);
             });
