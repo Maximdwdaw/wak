@@ -43,6 +43,7 @@
             z-index: 2;
             background-color: rgb(192, 192, 192);
             border-radius: 20px;
+            display: none; /* Initially hide the time */
         }
 
         video::-webkit-media-controls {
@@ -62,7 +63,6 @@
             position: fixed;
             top: 0px;
             left: 0px;
-     
             color: rgb(0, 0, 0);
             border: none;
             border-radius: 5px;
@@ -79,15 +79,16 @@
     <script>
         document.addEventListener('DOMContentLoaded', startHandTracking);
 
-        let currentCameraIndex = 2; // Set the desired camera index here
+        let currentCameraIndex = 1; // Set the desired camera index here
 
         const switchCameraSelect = document.getElementById('switchCameraSelect');
+        const timeElement = document.getElementById('time');
+        let handPointTimestamp = null;
 
         switchCameraSelect.addEventListener('change', switchCamera);
 
         function startHandTracking() {
             const videoElements = document.querySelectorAll('.video');
-            const timeElement = document.getElementById('time');
 
             navigator.mediaDevices.enumerateDevices().then(devices => {
                 devices.forEach((device, index) => {
@@ -116,7 +117,7 @@
                     handTrack.startVideo(video).then(status => {
                         if (status) {
                             handTrack.load().then(model => {
-                                detectHandState(model, video, timeElement);
+                                detectHandState(model, video);
                             });
                         } else {
                             console.error(`Unable to start video stream ${index + 1}.`);
@@ -138,21 +139,26 @@
             });
         }
 
-        function detectHandState(model, video, timeElement) {
+        function detectHandState(model, video) {
             model.detect(video).then(predictions => {
                 if (predictions.length > 0) {
                     const handState = predictions[0].label;
 
                     if (handState === 'point') {
-                        // Show time
+                        const handPositionX = predictions[0].bbox[0] + predictions[0].bbox[2] + 230;
+                        const handPositionY = predictions[0].bbox[1] + predictions[0].bbox[3] - 110;
+
+                        // Update the position of timeElement based on hand position
                         timeElement.style.display = 'block';
+                        timeElement.style.left = `${handPositionX}px`;
+                        timeElement.style.top = `${handPositionY}px`;
                     } else {
                         // Hide time
-                        timeElement.style.display = 'none';
+                        timeElement.style.display = 'none'; 
                     }
                 }
 
-                requestAnimationFrame(() => detectHandState(model, video, timeElement));
+                requestAnimationFrame(() => detectHandState(model, video));
             });
         }
 
