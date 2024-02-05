@@ -83,17 +83,16 @@
         let selectedCamera = null;
         const videoElements = document.querySelectorAll('.video');
         const timeElement = document.getElementById('time');
+        let currentStream;
 
         function changeCamera() {
             const selectElement = document.getElementById('cameraSelect');
             selectedCamera = selectElement.value;
 
-            // Stop existing hand tracking
-            videoElements.forEach((video, index) => {
-                handTrack.stopVideo(video);
-            });
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
 
-            // Start new hand tracking with the selected camera
             navigator.mediaDevices.enumerateDevices()
                 .then(devices => {
                     const videoInputs = devices.filter(device => device.kind === 'videoinput');
@@ -104,9 +103,10 @@
                             video: { deviceId: selectedDevice.deviceId },
                         };
 
-                        videoElements.forEach((video, index) => {
-                            navigator.mediaDevices.getUserMedia(constraints)
-                                .then(stream => {
+                        navigator.mediaDevices.getUserMedia(constraints)
+                            .then(stream => {
+                                currentStream = stream;
+                                videoElements.forEach((video, index) => {
                                     video.srcObject = stream;
                                     handTrack.startVideo(video).then(status => {
                                         if (status) {
@@ -117,11 +117,11 @@
                                             console.error(`Unable to start video stream for ${selectedCamera}.`);
                                         }
                                     });
-                                })
-                                .catch(error => {
-                                    console.error(`Error accessing camera: ${error}`);
                                 });
-                        });
+                            })
+                            .catch(error => {
+                                console.error(`Error accessing camera: ${error}`);
+                            });
                     } else {
                         console.error(`Selected camera ${selectedCamera} not found.`);
                     }
