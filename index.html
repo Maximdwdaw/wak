@@ -50,30 +50,16 @@
             display: none;
         }
 
-        #cide {
-            position: absolute;
-            right: 1%;
-            top: 30%;
-            width: 260px;
-            height: 170px;
-            display: none;
-        }
-
-        #switchCamera {
+        #cameraSelect {
             position: fixed;
             top: 10px;
             left: 10px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
+            z-index: 1;
         }
     </style>
 
     <h1 id="time"></h1>
-    <button id="switchCamera">Switch Camera</button>
+    <select id="cameraSelect"></select>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
@@ -83,11 +69,11 @@
 
         let currentCameraIndex = 0; // Index of the currently used camera
         let cameras = []; // Array to store available cameras
+        let videoElements = []; // Array to store video elements
 
         function startHandTracking() {
-            const videoElements = document.querySelectorAll('.video');
             const timeElement = document.getElementById('time');
-            const switchCameraButton = document.getElementById('switchCamera');
+            const cameraSelect = document.getElementById('cameraSelect');
 
             // Enumerate devices to get the list of cameras
             navigator.mediaDevices.enumerateDevices()
@@ -95,7 +81,16 @@
                     cameras = devices.filter(device => device.kind === 'videoinput');
 
                     if (cameras.length > 0) {
-                        switchCameraButton.addEventListener('click', switchCamera);
+                        videoElements = document.querySelectorAll('.video');
+
+                        cameras.forEach((camera, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = `Camera ${index + 1}`;
+                            cameraSelect.appendChild(option);
+                        });
+
+                        cameraSelect.addEventListener('change', switchCamera);
 
                         videoElements.forEach((video, index) => {
                             startCamera(video, index);
@@ -136,7 +131,7 @@
         }
 
         function switchCamera() {
-            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+            currentCameraIndex = parseInt(cameraSelect.value);
 
             videoElements.forEach((video, index) => {
                 startCamera(video, index);
