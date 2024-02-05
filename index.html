@@ -62,7 +62,6 @@
     <video autoplay muted playsinline class="video" id="video2"></video>
 
     <script>
-        document.addEventListener('DOMContentLoaded', startHandTracking);
 
         let currentCameraIndex = 0; // Index of the currently used camera
         let cameras = []; // Array to store available cameras
@@ -124,7 +123,7 @@
             videoElements.forEach((video, index) => {
                 startCamera(video, index);
             });
-
+            startHandTracking();
             // Hide the select element after making a selection
             select.style.display = 'none';
         }
