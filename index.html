@@ -7,7 +7,6 @@
     <title>Hand State Detection</title>
     <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22daw%22%2C%20%22short_name%22%3A%20%22daw%22%2C%20%22start_url%22%3A%20%22index.html%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23ffffff%22%2C%20%22theme_color%22%3A%20%22%23000000%22%2C%20%22scope%22%3A%20%22/%22%2C%20%22offline_enabled%22%3A%20true%2C%20%22prefer_related_applications%22%3A%20false%2C%20%22lang%22%3A%20%22ua%22%2C%20%22related_applications%22%3A%20%5B%5D%7D" />
     <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
-
 </head>
 
 <body>
@@ -59,7 +58,7 @@
             display: none;
         }
 
-        #switchCameraBtn {
+        #switchCameraSelect {
             position: fixed;
             bottom: 10%;
             left: 10%;
@@ -73,7 +72,7 @@
     </style>
 
     <h1 id="time"></h1>
-    <button id="switchCameraBtn">Switch Camera</button>
+    <select id="switchCameraSelect"></select>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
@@ -83,35 +82,48 @@
 
         let currentCameraIndex = 0;
 
-        document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
+        const switchCameraSelect = document.getElementById('switchCameraSelect');
+
+        switchCameraSelect.addEventListener('change', switchCamera);
 
         function startHandTracking() {
             const videoElements = document.querySelectorAll('.video');
             const timeElement = document.getElementById('time');
 
-            videoElements.forEach((video, index) => {
-                handTrack.startVideo(video).then(status => {
-                    if (status) {
-                        handTrack.load().then(model => {
-                            detectHandState(model, video, timeElement);
-                        });
-                    } else {
-                        console.error(`Unable to start video stream ${index + 1}.`);
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                devices.forEach((device, index) => {
+                    if (device.kind === 'videoinput') {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.text = `Camera ${index + 1}`;
+                        switchCameraSelect.appendChild(option);
                     }
                 });
+
+                videoElements.forEach((video, index) => {
+                    handTrack.startVideo(video).then(status => {
+                        if (status) {
+                            handTrack.load().then(model => {
+                                detectHandState(model, video, timeElement);
+                            });
+                        } else {
+                            console.error(`Unable to start video stream ${index + 1}.`);
+                        }
+                    });
+                });
+
+                setInterval(() => {
+                    var time = new Date();
+                    let h = time.getHours();
+                    let m = time.getMinutes();
+
+                    timeElement.textContent = `${h}:${m}`;
+                }, 1000);
+                setTimeout(() => {
+                    document.getElementById("video").style.height = '100%';
+                    document.getElementById("video2").style.height = '100%';
+                }, 100);
             });
-
-            setInterval(() => {
-                var time = new Date();
-                let h = time.getHours();
-                let m = time.getMinutes();
-
-                timeElement.textContent = `${h}:${m}`;
-            }, 1000);
-            setTimeout(() => {
-                document.getElementById("video").style.height = '100%';
-                document.getElementById("video2").style.height = '100%';
-            }, 100);
         }
 
         function detectHandState(model, video, timeElement) {
@@ -133,9 +145,9 @@
         }
 
         function switchCamera() {
-            currentCameraIndex = 1 - currentCameraIndex; // Toggle between 0 and 1
+            currentCameraIndex = switchCameraSelect.value;
+            const videoElements = document.querySelectorAll('.video');
             navigator.mediaDevices.enumerateDevices().then(devices => {
-                const videoElements = document.querySelectorAll('.video');
                 videoElements.forEach((video, index) => {
                     if (devices[currentCameraIndex] && devices[currentCameraIndex].kind === 'videoinput') {
                         const constraints = {
