@@ -7,112 +7,102 @@
     <title>Hand State Detection</title>
     <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22daw%22%2C%20%22short_name%22%3A%20%22daw%22%2C%20%22start_url%22%3A%20%22index.html%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23ffffff%22%2C%20%22theme_color%22%3A%20%22%23000000%22%2C%20%22scope%22%3A%20%22/%22%2C%20%22offline_enabled%22%3A%20true%2C%20%22prefer_related_applications%22%3A%20false%2C%20%22lang%22%3A%20%22ua%22%2C%20%22related_applications%22%3A%20%5B%5D%7D" />
     <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
+
 </head>
 
 <body>
+    
     <style>
-        body {
-            background-color: black;
-        }
-
-        #video {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            z-index: -2;
-        }
-
-        #video2 {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 50%;
-            height: 100%;
-        }
-
-        #time {
-            position: fixed;
-            bottom: 10%;
-            left: 70%;
-            width: 100px;
-            height: 40px;
-            color: black;
-            text-align: center;
-            z-index: 2;
-            background-color: rgb(192, 192, 192);
-            border-radius: 20px;
-        }
-
-        video::-webkit-media-controls {
-            display: none;
-        }
-
-        #cide {
-            position: absolute;
-            right: 1%;
-            top: 30%;
-            width: 260px;
-            height: 170px;
-            display: none;
-        }
-
-
+    body {
+      background-color: black;
+    }
+    
+    #video {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 50%;
+        height: 100%;
+        z-index: -2;
+    }
+    
+    #video2 {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 50%;
+        height: 100%;
+    }
+    #time {
+      position: fixed;
+        bottom: 10%;
+        left: 70%;
+        width: 100px;
+        height: 40px;
+        color: black;
+        text-align: center;
+        z-index: 2;
+        background-color: rgb(192, 192, 192);
+        border-radius: 20px;
+        
+    }
+    
+    select {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+    }
+    
+    video::-webkit-media-controls {
+        display: none;
+    }
+    
+    #cide {
+        position: absolute;
+        right: 1%;
+        top: 30%;
+        width: 260px;
+        height: 170px;
+        display:none;
+    }
+    
     </style>
+    
+    <select id="cameraSelect" onchange="changeCamera()">
+        <option value="camera1">Camera 1</option>
+        <option value="camera2">Camera 2</option>
+    </select>
 
     <h1 id="time"></h1>
-    <select id="switchCameraSelect"></select>
 
     <video autoplay muted playsinline class="video" id="video"></video>
     <video autoplay muted playsinline class="video" id="video2"></video>
-
+    
     <script>
-        document.addEventListener('DOMContentLoaded', startHandTracking);
+        let selectedCamera = null;
+        const videoElements = document.querySelectorAll('.video');
+        const timeElement = document.getElementById('time');
 
-        let currentCameraIndex = 4;
+        function changeCamera() {
+            const selectElement = document.getElementById('cameraSelect');
+            selectedCamera = selectElement.value;
 
-        const switchCameraSelect = document.getElementById('switchCameraSelect');
+            // Stop existing hand tracking
+            videoElements.forEach((video, index) => {
+                handTrack.stopVideo(video);
+            });
 
-        switchCameraSelect.addEventListener('change', switchCamera);
-
-        function startHandTracking() {
-            const videoElements = document.querySelectorAll('.video');
-            const timeElement = document.getElementById('time');
-
-            navigator.mediaDevices.enumerateDevices().then(devices => {
-                devices.forEach((device, index) => {
-                    if (device.kind === 'videoinput') {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.text = `Camera ${index + 1}`;
-                        switchCameraSelect.appendChild(option);
-                    }
-                });
-
-                videoElements.forEach((video, index) => {
-                    handTrack.startVideo(video).then(status => {
-                        if (status) {
-                            handTrack.load().then(model => {
-                                detectHandState(model, video, timeElement);
-                            });
-                        } else {
-                            console.error(`Unable to start video stream ${index + 1}.`);
-                        }
+            // Start new hand tracking with the selected camera
+            const selectedVideo = document.getElementById(selectedCamera);
+            handTrack.startVideo(selectedVideo).then(status => {
+                if (status) {
+                    handTrack.load().then(model => {
+                        detectHandState(model, selectedVideo, timeElement);
                     });
-                });
-
-                setInterval(() => {
-                    var time = new Date();
-                    let h = time.getHours();
-                    let m = time.getMinutes();
-
-                    timeElement.textContent = `${h}:${m}`;
-                }, 1000);
-                setTimeout(() => {
-                    document.getElementById("video").style.height = '100%';
-                    document.getElementById("video2").style.height = '100%';
-                }, 100);
+                } else {
+                    console.error(`Unable to start video stream for ${selectedCamera}.`);
+                }
             });
         }
 
@@ -131,28 +121,6 @@
                 }
 
                 requestAnimationFrame(() => detectHandState(model, video, timeElement));
-            });
-        }
-
-        function switchCamera() {
-            currentCameraIndex = switchCameraSelect.value;
-            const videoElements = document.querySelectorAll('.video');
-            navigator.mediaDevices.enumerateDevices().then(devices => {
-                videoElements.forEach((video, index) => {
-                    if (devices[currentCameraIndex] && devices[currentCameraIndex].kind === 'videoinput') {
-                        const constraints = {
-                            video: {
-                                deviceId: devices[currentCameraIndex].deviceId,
-                            },
-                        };
-                        document.getElementById("switchCameraSelect").style.display= "none"
-                        navigator.mediaDevices.getUserMedia(constraints).then(stream => {
-                            video.srcObject = stream;
-                        }).catch(error => {
-                            console.error('Error switching camera:', error);
-                        });
-                    }
-                });
             });
         }
     </script>
